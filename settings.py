@@ -30,6 +30,11 @@ TEMPLATE_DIRS = (
 
 )
 
+REST_FRAMEWORK = {
+	'DEFAULT_PARSER_CLASSES': {
+		'rest_framework.parsers.XMLParser',
+	}
+}
 
 ALLOWED_HOSTS = []
 
@@ -43,6 +48,7 @@ INSTALLED_APPS = (
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'departure',
 )
 
 MIDDLEWARE_CLASSES = (
