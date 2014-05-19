@@ -1,0 +1,13 @@
+<html>
+    <head>
+        <title>{% block page-title %}Simple Google Maps API v3{% endblock %}</title>
+        <script type="text/javascript" src="http://maps.google.com/maps/api/js?sensor=false"></script>
+        <script src="http://code.jquery.com/jquery-1.4.4.min.js"></script>
+    	<script src='http://media.adamfast.com/QueryData.compressed.js'></script>
+		{% block head_override %}{% endblock head_override %}
+    </head>
+    <body{% block body_override %}{% endblock body_override %}>
+        {% block content %}
+        {% endblock content %}
+    </body>
+<html>

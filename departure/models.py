@@ -7,7 +7,7 @@ from django.contrib.gis.geos import Point, GEOSException
 class Agency(models.Model):
     agency_tag = models.CharField(max_length=30, primary_key=True)
     title = models.CharField(max_length=200)
-    region = models.CharField(max_length=30)
+    region = models.CharField(max_length=200)
     
     def __unicode__(self):
         return 'agency: %s, title: %s, region: %s' % (self.agency_tag, self.title, self.region)
@@ -15,19 +15,28 @@ class Agency(models.Model):
 class Stop (models.Model):
     tag = models.CharField(max_length=30)
     title = models.CharField(max_length=200)
-    short_title = models.CharField(max_length=30, null=True)
+    short_title = models.CharField(max_length=200, null=True)
     point = models.PointField()
     stop_id = models.IntegerField(null=True)
     route = models.ForeignKey('Route')
     
+    objects = models.GeoManager()
+    
     def __unicode__(self):
         return 'tag: %s, title: %s, shortTitle: %s' \
             % (self.tag, self.title, self.short_title)
+    def get_agency_tag(self):
+        return self.route.agency.agency_tag
     
+    def get_route_tag(self):
+        return self.route.tag
+    
+    def get_point(self):
+        return self.point
 class Route(models.Model):
     tag = models.CharField(max_length=30)
     title = models.CharField(max_length=200)
-    short_title = models.CharField(max_length=30, null=True)
+    short_title = models.CharField(max_length=200, null=True)
     #stops = models.ManyToManyField(Stop, related_name='stop_list')
     agency = models.ForeignKey(Agency)
     
@@ -46,7 +55,8 @@ class Route(models.Model):
                 'stopID: {0}'.format(stop.stop_id),
             })
         return stop_set
-    
+
+
     
     
 

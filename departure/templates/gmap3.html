@@ -1,0 +1,89 @@
+
+{% extends "gmap3base.html" %}
+
+{% block page-title %}Requested Items{% endblock %}
+{% block head_override %}
+<script type="text/javascript">
+	checkLocation();
+	function checkLocation() {
+	  var getData = new QueryData();
+	  if ('lat' in getData) { }
+	  else {
+	    if (navigator.geolocation) {
+	      navigator.geolocation.getCurrentPosition(
+	        function (ppos) {
+	          window.location.href = window.location.href + '?lat=' + ppos.coords.latitude + '&lon=' + ppos.coords.longitude;
+	        },
+	        function (err) {
+	          switch(err.code) {
+	
+	            case err.TIMEOUT:
+	              alert('Attempts to retrieve location timed out.')
+	              break;
+	
+	            case err.POSITION_UNAVAILABLE:
+	              alert("Your browser doesn't know where you are.")
+	              break;
+	
+	            case err.PERMISSION_DENIED:
+	              alert('You have to give us permission!')
+	              break;
+	
+	            case err.UNKNOWN_ERROR:
+	              alert('Unknown error returned.')
+	              break;
+	
+	            default:
+	              alert(err + ' ' + err.code)
+	
+	          }
+	        }
+	      );
+	    }
+	  }
+	}
+	var bounds = new google.maps.LatLngBounds();
+	var map, stops={};
+	var infoWindow = new google.maps.InfoWindow();
+	function buildMarker(map, latitude, longitude, name, color, info_html) {
+	    var latlng = new google.maps.LatLng(longitude, latitude);
+	    var marker = new google.maps.Marker({
+	          position: latlng,
+	          map: map,
+	          title:name,
+	    });
+	    marker.setIcon('http://maps.google.com/mapfiles/ms/icons/' + color + '-dot.png');
+	    bounds.extend(latlng);
+	    
+	    google.maps.event.addListener(marker, 'click', function() {
+			if(info_html == null) {
+				infoWindow.setContent(name);
+			}
+			else {
+				infoWindow.setContent(info_html);
+			}
+			infoWindow.setPosition(latlng);
+			infoWindow.open(map);
+		});
+	    
+	    return marker;
+    }	
+	function mapInitialize() {
+		map = new google.maps.Map(document.getElementById("map"),{
+		      zoom: 12,
+		      center: new google.maps.LatLng({{lat}},{{lon}}),
+		      mapTypeId: google.maps.MapTypeId.ROADMAP
+		});
+	  	{% for stop in stop_list %}
+		stops[{{stop.id}}] = buildMarker(map, {{stop.point.y}}, {{stop.point.x}}, "{{stop.tag}}", 'red', "{{stop.title}}");
+		{% endfor %}
+	}
+</script>
+{% endblock head_override %}
+
+{% block body_override %}	
+	 onload="mapInitialize()"{% endblock body_override %}
+
+{% block content %}
+<div id="map" style='width:600px;height:400px;'></div>
+{% endblock content %}

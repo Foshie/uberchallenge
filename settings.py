@@ -27,6 +27,7 @@ TEMPLATE_DEBUG = True
 TEMPLATE_DIRS = (
 
 	os.path.join(os.path.dirname(__file__), 'templates'),
+	os.path.join(os.path.dirname(__file__), 'departure/templates'),
 
 )
 
@@ -48,6 +49,8 @@ INSTALLED_APPS = (
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.gis',
+    'easy_maps',
     'departure',
 )
 
@@ -70,8 +73,11 @@ WSGI_APPLICATION = 'uberchallenge.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+        'ENGINE': 'django.contrib.gis.db.backends.postgis',
+		'NAME': 'geodeparture',  # Name of your spatial database
+        'USER': 'geo',   # Database user 
+        'PASSWORD' : '1234',
+        'HOST': 'localhost',
     }
 }
 
@@ -96,3 +102,5 @@ STATIC_URL = '/static/'
 
 # Geolocation file locations
 GEOIP_PATH = BASE_DIR + '/geoIP'
+GEOS_LIBRARY_PATH = '/usr/local/lib/libgeos_c.so'
+GDAL_LIBRARY_PATH = '/usr/local/lib/libgdal.so'
