@@ -22,17 +22,11 @@ def nearby_stop(request):
 
 def list_stop(origin):
     
-    # Get current time - Don't think I need this.
-    current_time = get_time()
     stops = Stop.objects.all().distance(origin).order_by('distance')[:20]
-
+    
     sorted_stops = nextbus_xml_parser.get_stops(stops, origin)
     
     return stops
-
-def get_time():
-    now = datetime.datetime.now()
-    return now
 
 
     

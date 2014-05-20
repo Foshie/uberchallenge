@@ -33,6 +33,11 @@ class Stop (models.Model):
     
     def get_point(self):
         return self.point
+    
+    def get_title(self):
+        return self.title
+    
+    
 class Route(models.Model):
     tag = models.CharField(max_length=30)
     title = models.CharField(max_length=200)

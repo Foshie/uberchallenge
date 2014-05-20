@@ -50,7 +50,7 @@
 	    var marker = new google.maps.Marker({
 	          position: latlng,
 	          map: map,
-	          title:name,
+	          title:name
 	    });
 	    marker.setIcon('http://maps.google.com/mapfiles/ms/icons/' + color + '-dot.png');
 	    bounds.extend(latlng);
@@ -69,12 +69,19 @@
 	    return marker;
     }	
 	function mapInitialize() {
+		var centerLatLng = new google.maps.LatLng({{lat}},{{lon}});
 		map = new google.maps.Map(document.getElementById("map"),{
-		      zoom: 12,
-		      center: new google.maps.LatLng({{lat}},{{lon}}),
+		      zoom: 16,
+		      center: centerLatLng,
 		      mapTypeId: google.maps.MapTypeId.ROADMAP
 		});
-	  	{% for stop in stop_list %}
+		var centerMark = new google.maps.Marker({
+			position : centerLatLng,
+			icon: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png',
+			map: map,
+			visible: true
+		});
+		{% for stop in stop_list %}
 		stops[{{stop.id}}] = buildMarker(map, {{stop.point.y}}, {{stop.point.x}}, "{{stop.tag}}", 'red', "{{stop.title}}");
 		{% endfor %}
 	}
