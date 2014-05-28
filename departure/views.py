@@ -1,10 +1,10 @@
-from django.shortcuts import render
 from django.contrib.gis.geos import Point
+from django.contrib.gis.measure import D
 from django.template import RequestContext
 from django.shortcuts import render_to_response
-import datetime
 
-from models import Agency, Stop, Route
+from models import Stop
+
 import nextbus_xml_parser
 # Generates a view for nearest stops within .5 miles of the users current location.
 def nearby_stop(request):
@@ -22,11 +22,15 @@ def nearby_stop(request):
 
 def list_stop(origin):
     
-    stops = Stop.objects.all().distance(origin).order_by('distance')[:20]
-    
+    #Generate a generic stop list within 1 mile of the user.
+    #This is all by preference: If get_stops does not come back with more than 20 individual stops, 
+    #then expand the search  
+    dist=0.2
+    #while len(sorted_stops) < 20:
+    stops = Stop.objects.filter(point__distance_lte=(origin, D(mi=dist))).distance(origin).order_by('distance')
     sorted_stops = nextbus_xml_parser.get_stops(stops, origin)
-    
-    return stops
+    #dist = dist + 1 # Expand search by 1 mile each time
+    return sorted_stops
 
 
     

@@ -1,9 +1,11 @@
 #!/usr/bin/env python
 import sys
-from xml.etree.ElementTree import ElementTree as ET, ParseError
+from geopy.distance import distance as geopy_distance, vincenty, Point
+from xml.etree.ElementTree import ElementTree as ET, ParseError, Element, SubElement
 from departure.models import Agency, Stop, Route
 import urllib2
-from django.contrib.gis.geos import Point, GEOSGeometry
+from django.contrib.gis.geos import GEOSGeometry
+from django.contrib.gis.measure import D
 from urllib2 import HTTPError
 
 def parse_agency():
@@ -53,33 +55,25 @@ def build_dict(seq, key):
 # Returns sorted tuple of (routetag, stop, (time predictionsx3)) sorted by time until departure
 def get_stops(stops, origin):
     urlArray=[]
-    #1 method - Guaranteed 2 pass through storage:
-    # Can Probably refine the search method.
-    keys = []
-    # First iteration generates keys for agency
-    for stop in stops:
-        agency_tag = stop.get_agency_tag().__str__()
-        if agency_tag not in keys:
-            keys.append(agency_tag)
-    print 'Keys: {0}'.format(keys)
+    # Create list of agency keys.
+    keys = Agency.objects.values_list('agency_tag', flat=True)
     # Second iteration creates dictionary of stops.
-    urlDict = { a_tag: [] for a_tag in keys}
-    print urlDict
+    urlDict = { str(a_tag): [] for a_tag in keys}
+    #1 iteration through n
     for stop in stops:
-        agency_tag = stop.get_agency_tag()
-        route_tag = stop.get_route_tag().__str__()
+        agency_tag = str(stop.get_agency_tag())
+        route_tag = str(stop.get_route_tag())
         stopURL = "{0}|{1}".format(route_tag, stop.tag)
         urlDict[agency_tag].append(stopURL)
-    
-    print 'Dictionary: {0}'.format(urlDict)
-    # Generate url appendix for each entry in the dictionary        
+    # Generate url appendix for each entry in the dictionary    
+    # 2nd iteration through n    
     for key in urlDict:
         urlArray.append(generate_multiStopURL(key,urlDict[key]))
-    print urlArray
+        
     return parse_multiStop(urlArray, origin)
 def generate_multiStopURL(key, value):
-    urlBase = "http://webservices.nextbus.com/service/publicXMLFeed?command=predictionsForMultiStops&a="
-    urlAppendix = key
+    urlBase = "http://webservices.nextbus.com/service/publicXMLFeed?command=predictionsForMultiStops&a=" + key
+    urlAppendix = ''
     for stop in value:
         urlAppendix = urlAppendix + '&stops={0}'.format(stop)
     
@@ -91,48 +85,51 @@ def parse_multiStop(urlArray, origin):
     for urlPath in urlArray:
         try:
             xmlTree = ET(file=urllib2.urlopen(urlPath))
-            print urlPath
             # Check to see if there are any predictions at all
             # If attribute(dirTitleBecauseNoPredictions) exists, then there are no predictions.
-            
             for node in xmlTree.iterfind('predictions'):
                 #Get stop tag
+                route_title = node.get('routeTitle')
                 stop_tag = node.get('stopTag')
                 #Create list of departure predictions
-                stopTimes=[]
                 if node.find('direction') is not None:
                     times=[]
                     for prediction in node.find('direction'): #predictions/direction/prediction
                         times.append(prediction.get('minutes'))
+                    listElem = Element('Predictions')
+                    stopElem = SubElement(listElem,'Stop')
+                    stopElem.set('tag', stop_tag)
+                    stopElem.set('times', times)
+                    stopElem.set('route', route_title)
+                    stopElem.set('direction', node.find('direction').get('title').__str__())
                     
-                    stopTimes.append({'tag':stop_tag, 'times':times,'direction': node.find('direction').get('title').__str__()})
-                
                     # Insert in sorted order to depTimes
-                    depTimes = insertTimes(depTimes, stopTimes, origin)
+                    depTimes = insertTimes(depTimes, listElem, origin)
                     
         except HTTPError as e:
             print e
             print urlPath
-            sys.exit(0)       
+            exit(1)
     return depTimes         
 #Test this section!!!
 #Current sorting algorithm based off distances
 #currList is a list of dictionary:(stop:[stop_tag, times, direction], title:title, distance:distance)
-def insertTimes(currList, appendList, origin):
-    print 'List: {0}'.format(currList)
-    for stop in appendList:
+def insertTimes(currList, listElem, origin):
+    for stop in listElem.getchildren():
         # Get stop distance from origin
-        sList = list(Stop.objects.filter(tag=stop['tag']))
+        sList = list(Stop.objects.filter(tag=stop.get('tag')))
         stop_point = sList[0].get_point()
         flag = False
         #Add title to the stop dictionary
         stop_title = sList[0].get_title().__str__()
-        appendItem = {'stop':[stop], 'title':stop_title, 'distance':stop_point.distance(origin)}
-        print 'Append: {0}'.format(appendItem)
+        stop_list_node = Element('stop_list')
+        stop_list_node.append(stop)
+        appendItem = {'stop':stop_list_node, 'title':stop_title, 'distance':vincenty(stop_point, origin).mi, 'point': stop_point, 'tag':stop.get('tag'), 'route':stop.get('route')}
+        #print 'Append: {0}'.format(appendItem)
         #Where does it go
         for curr in currList:
-            print 'Stop: {0}'.format(stop)
-            if curr['distance'] == stop_point.distance(origin):
+            #print 'Stop: {0}'.format(stop)
+            if curr['distance'] == vincenty(stop_point, origin).mi:
                 #If distance is the same, && Location is the same ( Same stop title)
                 #    Then add stop the list of curr['stop']
                 if curr['title'] == stop_title:
